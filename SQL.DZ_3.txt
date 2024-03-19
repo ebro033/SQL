@@ -1,0 +1,193 @@
+1.
+
+
+-- Рассчетт количества проданных продуктов по датам
+
+SELECT
+    s.transaction_date,
+    SUM(p.quantity_sold) AS sold_products,
+    SUM(p.waste) AS wasted_products
+FROM
+    sales_reciepts s
+LEFT JOIN
+    pastry_inventory p ON s.sales_outlet_id = p.sales_outlet_id
+    AND s.transaction_date = p.transaction_date
+GROUP BY
+    s.transaction_date
+ORDER BY
+    s.transaction_date;
+
+
+
+
+2.
+
+
+-- Подсчет клиентов по поколениям 
+
+SELECT
+    CASE
+        WHEN birth_year BETWEEN 1946 AND 1964 THEN 'Baby Boomers'
+        WHEN birth_year BETWEEN 1965 AND 1980 THEN 'Gen X'
+        WHEN birth_year BETWEEN 1981 AND 1996 THEN 'Olden millennials'
+        WHEN birth_year BETWEEN 1997 AND 2012 THEN 'Gen Z'
+        WHEN birth_year >= 2013 THEN 'Younger Millennials'
+        ELSE 'Unknown'
+    END AS generation,
+    COUNT(customer_id) AS total_customers
+FROM
+    customer
+GROUP BY
+    generation
+ORDER BY
+    generation;
+
+
+
+3.
+
+
+-- Нахождение топ 10 самых продаваемых товаров каждый день и проранжироввание их по днями и кол-ву проданных штук
+
+WITH DailyTopProducts AS (
+    SELECT
+        s.transaction_date AS sale_date,
+        p.product_name,
+        SUM(s.quantity) AS total_sold
+    FROM
+        sales_reciepts s
+    INNER JOIN
+        product p ON s.product_id = p.product_id
+    GROUP BY
+        sale_date,
+        p.product_name
+),
+RankedProducts AS (
+    SELECT
+        sale_date,
+        product_name,
+        total_sold,
+        ROW_NUMBER() OVER (PARTITION BY sale_date ORDER BY total_sold DESC) AS rank
+    FROM
+        DailyTopProducts
+)
+SELECT
+    sale_date,
+    product_name,
+    total_sold
+FROM
+    RankedProducts
+WHERE
+    rank <= 10
+ORDER BY
+    sale_date,
+    rank;
+
+
+
+
+5.
+
+— Код не может найти имя продукта "Columbian medium roast"
+
+
+
+
+6.
+
+
+
+
+-- Соберите витрину из следующих полей: 
+-- transaction_date, sales_outlet_id, store_addres, product_id, product_name,  customer_id, customer_name, gender ( заменить на male, female, not defined  если пустое значение), unit_price, quantity, line_item_amount
+
+SELECT
+    sr.transaction_date,
+    sr.sales_outlet_id,
+    so.store_address,
+    sr.product_id,
+    p.product_name,
+    sr.customer_id,
+    c.customer_name,
+    CASE
+        WHEN c.gender = '' THEN 'not defined'
+        WHEN c.gender IS NULL THEN 'not defined'
+        ELSE c.gender
+    END AS gender,
+    sr.unit_price,
+    sr.quantity,
+    sr.line_item_amount
+FROM
+    sales_reciepts sr
+JOIN
+    sales_outlet so ON sr.sales_outlet_id = so.sales_outlet_id
+JOIN
+    product p ON sr.product_id = p.product_id
+LEFT JOIN
+    customer c ON sr.customer_id = c.customer_id;
+
+
+
+
+7.
+
+-- Подсчет количества запросов транзакции по полю gender используя витрину в качестве табличного выражения
+
+SELECT
+    gender,
+    COUNT(*) AS transaction_count
+FROM
+    (SELECT
+        sr.transaction_date,
+        sr.sales_outlet_id,
+        so.store_address,
+        sr.product_id,
+        p.product_name,
+        sr.customer_id,
+        c.customer_name,
+        CASE
+            WHEN c.gender = '' THEN 'not defined'
+            WHEN c.gender IS NULL THEN 'not defined'
+            ELSE c.gender
+        END AS gender,
+        sr.unit_price,
+        sr.quantity,
+        sr.line_item_amount
+    FROM
+        sales_reciepts sr
+    JOIN
+        sales_outlet so ON sr.sales_outlet_id = so.sales_outlet_id
+    JOIN
+        product p ON sr.product_id = p.product_id
+    LEFT JOIN
+        customer c ON sr.customer_id = c.customer_id) AS transaction_data
+GROUP BY
+    gender;
+
+
+
+
+8. 
+
+-- Подсчет кумулятивного числа проданных продуктов по дате 
+
+SELECT
+    transaction_date,
+    SUM(quantity_sold) OVER (ORDER BY transaction_date) AS cumulative_quantity
+FROM (
+    SELECT
+        transaction_date,
+        SUM(quantity) AS quantity_sold
+    FROM
+        sales_reciepts
+    GROUP BY
+        transaction_date
+    ORDER BY
+        transaction_date
+);
+
+
+
+
+
+

@@ -1,0 +1,97 @@
+1. 
+
+—Расчет количества транзакций по дням 
+
+SELECT 
+    strftime('%Y', transaction_date) AS Year,
+    strftime('%m', transaction_date) AS Month,
+    strftime('%d', transaction_date) AS Day,
+    COUNT(transaction_id) AS TotalTransactions
+FROM 
+    sales_reciepts
+GROUP BY 
+    strftime('%Y', transaction_date),
+    strftime('%m', transaction_date),
+    strftime('%d', transaction_date)
+ORDER BY 
+    Year DESC, Month DESC, Day DESC
+
+
+2. 
+
+— Расчет суммы заказов в каждом городе и магазине с последующим округлением 
+
+SELECT 
+    so.store_city AS City,
+    so.store_address AS Address,
+    ROUND(SUM(sr.line_item_amount), 2) AS TotalOrderAmount
+FROM 
+    sales_reciepts sr
+JOIN 
+    sales_outlet so ON sr.sales_outlet_id = so.sales_outlet_id
+GROUP BY 
+    so.store_city, so.store_address
+ORDER BY 
+    TotalOrderAmount DESC
+
+
+
+3.
+
+— Вывод названия регионов , где продавался продукт "Columbian Medium Roast" с последней датой продажи в регионе
+
+SELECT 
+    so.neighborhood,
+    MAX(sr.transaction_date) AS LastSaleDate
+FROM 
+    sales_reciepts sr
+JOIN 
+    sales_outlet so ON sr.sales_outlet_id = so.sales_outlet_id
+JOIN 
+    product p ON sr.product_id = p.product_id
+WHERE 
+    p.product_name = "Columbian Medium Roast"
+GROUP BY 
+    so.neighborhood;
+
+
+
+
+
+
+4. 
+
+—Вывод электронных адресов клиентов и определение доменов 
+
+SELECT 
+    email AS Email,
+    SUBSTR(email, INSTR(email, '@') + 1) AS Domain
+FROM 
+    customer;
+
+
+
+
+
+5.
+
+— Разделение имя клиентов на имя и фамилию. Редактирования номера карты лояльности и вывод количества транзакций 
+
+SELECT 
+    TRIM(SUBSTR(customer_name, 1, INSTR(customer_name, ' ') - 1)) AS First_Name,
+    TRIM(SUBSTR(customer_name, INSTR(customer_name, ' ') + 1)) AS Last_Name,
+    REPLACE(loyalty_card_number, ' ', '') AS Loyalty_Card_Number,
+    COUNT(transaction_id) AS Transaction_Count
+FROM 
+    customer
+LEFT JOIN 
+    sales_reciepts ON customer.customer_id = sales_reciepts.customer_id
+GROUP BY 
+    First_Name, Last_Name, Loyalty_Card_Number
+ORDER BY 
+    Transaction_Count DESC;
+
+
+
+
+
